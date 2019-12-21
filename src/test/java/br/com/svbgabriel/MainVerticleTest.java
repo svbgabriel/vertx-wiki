@@ -1,4 +1,4 @@
-package io.vertx.starter;
+package br.com.svbgabriel;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
@@ -8,6 +8,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import br.com.svbgabriel.MainVerticle;
 
 @RunWith(VertxUnitRunner.class)
 public class MainVerticleTest {

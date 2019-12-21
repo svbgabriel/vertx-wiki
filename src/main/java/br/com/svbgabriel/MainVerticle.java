@@ -1,4 +1,4 @@
-package io.vertx.starter;
+package br.com.svbgabriel;
 
 import java.util.Date;
 import java.util.List;
@@ -26,6 +26,8 @@ public class MainVerticle extends AbstractVerticle {
 
 	private JDBCClient dbClient;
 	private FreeMarkerTemplateEngine templateEngine;
+
+	private static final String EMPTY_PAGE_MARKDOWN = "# A new page\n\nFeel-free to write in Markdown!\n";
 
 	private static final String SQL_CREATE_PAGES_TABLE = "create table if not exists Pages (Id integer identity primary key, Name varchar(255) unique, Content clob)";
 	private static final String SQL_GET_PAGE = "select Id, Content from Pages where Name = ?";
@@ -121,8 +123,6 @@ public class MainVerticle extends AbstractVerticle {
 			}
 		});
 	}
-
-	private static final String EMPTY_PAGE_MARKDOWN = "# A new page\n" + "\n" + "Feel-free to write in Markdown!\n";
 
 	private void pageRenderingHandler(RoutingContext context) {
 		String page = context.request().getParam("page");
