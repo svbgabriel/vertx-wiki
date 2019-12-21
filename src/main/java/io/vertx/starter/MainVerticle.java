@@ -1,15 +1,19 @@
 package io.vertx.starter;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.rjeschke.txtmark.Processor;
+
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
@@ -112,6 +116,50 @@ public class MainVerticle extends AbstractVerticle {
 						context.fail(res.cause());
 					}
 				});
+			} else {
+				context.fail(car.cause());
+			}
+		});
+	}
+
+	private static final String EMPTY_PAGE_MARKDOWN = "# A new page\n" + "\n" + "Feel-free to write in Markdown!\n";
+
+	private void pageRenderingHandler(RoutingContext context) {
+		String page = context.request().getParam("page");
+
+		dbClient.getConnection(car -> {
+			if (car.succeeded()) {
+
+				SQLConnection connection = car.result();
+				connection.queryWithParams(SQL_GET_PAGE, new JsonArray().add(page), fetch -> {
+					connection.close();
+					if (fetch.succeeded()) {
+
+						JsonArray row = fetch.result().getResults().stream().findFirst()
+								.orElseGet(() -> new JsonArray().add(-1).add(EMPTY_PAGE_MARKDOWN));
+						Integer id = row.getInteger(0);
+						String rawContent = row.getString(1);
+
+						context.put("title", page);
+						context.put("id", id);
+						context.put("newPage", fetch.result().getResults().size() == 0 ? "yes" : "no");
+						context.put("rawContent", rawContent);
+						context.put("content", Processor.process(rawContent));
+						context.put("timestamp", new Date().toString());
+
+						templateEngine.render(context.data(), "templates/page.ftl", ar -> {
+							if (ar.succeeded()) {
+								context.response().putHeader("Content-Type", "text/html");
+								context.response().end(ar.result());
+							} else {
+								context.fail(ar.cause());
+							}
+						});
+					} else {
+						context.fail(fetch.cause());
+					}
+				});
+
 			} else {
 				context.fail(car.cause());
 			}
