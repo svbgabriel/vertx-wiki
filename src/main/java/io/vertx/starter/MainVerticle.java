@@ -1,5 +1,8 @@
 package io.vertx.starter;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +14,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 
@@ -80,6 +84,38 @@ public class MainVerticle extends AbstractVerticle {
 		});
 
 		return promise.future();
+	}
+
+	private void indexHandler(RoutingContext context) {
+		dbClient.getConnection(car -> {
+			if (car.succeeded()) {
+				SQLConnection connection = car.result();
+				connection.query(SQL_ALL_PAGES, res -> {
+					connection.close();
+
+					if (res.succeeded()) {
+						List<String> pages = res.result().getResults().stream().map(json -> json.getString(0)).sorted()
+								.collect(Collectors.toList());
+
+						context.put("title", "Wiki home");
+						context.put("pages", pages);
+						templateEngine.render(context.data(), "templates/index.ftl", ar -> {
+							if (ar.succeeded()) {
+								context.response().putHeader("Content-Type", "text/html");
+								context.response().end(ar.result());
+							} else {
+								context.fail(ar.cause());
+							}
+						});
+
+					} else {
+						context.fail(res.cause());
+					}
+				});
+			} else {
+				context.fail(car.cause());
+			}
+		});
 	}
 
 	@Override
