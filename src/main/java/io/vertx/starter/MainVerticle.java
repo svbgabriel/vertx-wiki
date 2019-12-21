@@ -166,6 +166,17 @@ public class MainVerticle extends AbstractVerticle {
 		});
 	}
 
+	private void pageCreateHandler(RoutingContext context) {
+		String pageName = context.request().getParam("name");
+		String location = "/wiki/" + pageName;
+		if (pageName == null || pageName.isEmpty()) {
+			location = "/";
+		}
+		context.response().setStatusCode(303);
+		context.response().putHeader("Location", location);
+		context.response().end();
+	}
+
 	@Override
 	public void start(Promise<Void> promise) {
 		Future<Void> steps = prepareDatabase().compose(v -> startHttpServer());
