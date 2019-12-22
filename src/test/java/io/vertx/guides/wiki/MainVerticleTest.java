@@ -1,15 +1,15 @@
-package br.com.svbgabriel;
+package io.vertx.guides.wiki;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.guides.wiki.MainVerticle;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import br.com.svbgabriel.MainVerticle;
 
 @RunWith(VertxUnitRunner.class)
 public class MainVerticleTest {

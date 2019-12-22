@@ -1,4 +1,4 @@
-package br.com.svbgabriel;
+package io.vertx.guides.wiki.database;
 
 import java.io.FileInputStream;
 import java.io.IOException;

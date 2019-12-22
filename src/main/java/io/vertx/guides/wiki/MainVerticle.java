@@ -1,8 +1,9 @@
-package br.com.svbgabriel;
+package io.vertx.guides.wiki;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Promise;
+import io.vertx.guides.wiki.database.WikiDatabaseVerticle;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -15,7 +16,7 @@ public class MainVerticle extends AbstractVerticle {
 		dbVerticleDeployment.future().compose(id -> {
 
 			Promise<String> httpVerticleDeployment = Promise.promise();
-			vertx.deployVerticle("br.com.svbgabriel.HttpServerVerticle", new DeploymentOptions().setInstances(2),
+			vertx.deployVerticle("io.vertx.guides.wiki.http.HttpServerVerticle", new DeploymentOptions().setInstances(2),
 					httpVerticleDeployment);
 
 			return httpVerticleDeployment.future();

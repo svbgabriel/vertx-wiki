@@ -1,4 +1,4 @@
-package br.com.svbgabriel;
+package io.vertx.guides.wiki.http;
 
 import java.util.Date;
 
