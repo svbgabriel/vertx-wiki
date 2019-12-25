@@ -1,6 +1,7 @@
 package io.vertx.guides.wiki.database;
 
 import java.util.HashMap;
+import java.util.List;
 
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.GenIgnore;
@@ -31,6 +32,9 @@ public interface WikiDatabaseService {
 
 	@Fluent
 	WikiDatabaseService deletePage(int id, Handler<AsyncResult<Void>> resultHandler);
+
+	@Fluent
+	WikiDatabaseService fetchAllPagesData(Handler<AsyncResult<List<JsonObject>>> resultHandler);
 
 	@GenIgnore
 	static WikiDatabaseService create(JDBCClient dbClient, HashMap<SqlQuery, String> sqlQueries,
