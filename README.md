@@ -15,6 +15,18 @@ Faça o clone do projeto:
 
 	https://github.com/svbgabriel/vertx-wiki.git
 
+Crie a chave para acesso via HTTPS (exemplo):
+
+	keytool -genkey \
+	-alias test \
+	-keyalg RSA \
+	-keystore server-keystore.jks \
+	-keysize 2048 \
+	-validity 360 \
+	-dname CN=localhost \
+	-keypass secret \
+	-storepass secret
+
 ## Executando o projeto
 
 Você pode executar o projeto com o comando:
