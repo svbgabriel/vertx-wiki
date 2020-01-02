@@ -1,10 +1,5 @@
 package io.vertx.guides.wiki.http;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -20,12 +15,18 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.guides.wiki.database.WikiDatabaseVerticle;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class ApiTest {
 
 	private Vertx vertx;
 	private WebClient webClient;
+
+	private String jwtTokenHeaderValue;
 
 	@Before
 	public void prepare(TestContext context) {
@@ -34,6 +35,9 @@ public class ApiTest {
 		JsonObject dbConf = new JsonObject()
 				.put(WikiDatabaseVerticle.CONFIG_WIKIDB_JDBC_URL, "jdbc:hsqldb:mem:testdb;shutdown=true")
 				.put(WikiDatabaseVerticle.CONFIG_WIKIDB_JDBC_MAX_POOL_SIZE, 4);
+
+		vertx.deployVerticle(new AuthInitializerVerticle(), new DeploymentOptions().setConfig(dbConf),
+				context.asyncAssertSuccess());
 
 		vertx.deployVerticle(new WikiDatabaseVerticle(), new DeploymentOptions().setConfig(dbConf),
 				context.asyncAssertSuccess());
@@ -44,18 +48,34 @@ public class ApiTest {
 				.setSsl(true).setTrustOptions(new JksOptions().setPath("server-keystore.jks").setPassword("secret")));
 	}
 
+	@After
+	public void finish(TestContext context) {
+		vertx.close(context.asyncAssertSuccess());
+	}
+
 	@Test
 	public void play_with_api(TestContext context) {
 		Async async = context.async();
 
+		Promise<HttpResponse<String>> tokenPromise = Promise.promise();
+		webClient.get("/api/token").putHeader("login", "foo").putHeader("password", "bar").as(BodyCodec.string())
+				.send(tokenPromise);
+		Future<HttpResponse<String>> tokenFuture = tokenPromise.future();
+
 		JsonObject page = new JsonObject().put("name", "Sample").put("markdown", "# A page");
 
-		Promise<HttpResponse<JsonObject>> postPagePromise = Promise.promise();
-		webClient.post("/api/pages").as(BodyCodec.jsonObject()).sendJsonObject(page, postPagePromise);
-
-		Future<HttpResponse<JsonObject>> getPageFuture = postPagePromise.future().compose(resp -> {
+		Future<HttpResponse<JsonObject>> postPageFuture = tokenFuture.compose(tokenResponse -> {
 			Promise<HttpResponse<JsonObject>> promise = Promise.promise();
-			webClient.get("/api/pages").as(BodyCodec.jsonObject()).send(promise);
+			jwtTokenHeaderValue = "Bearer " + tokenResponse.body();
+			webClient.post("/api/pages").putHeader("Authorization", jwtTokenHeaderValue).as(BodyCodec.jsonObject())
+					.sendJsonObject(page, promise);
+			return promise.future();
+		});
+
+		Future<HttpResponse<JsonObject>> getPageFuture = postPageFuture.compose(resp -> {
+			Promise<HttpResponse<JsonObject>> promise = Promise.promise();
+			webClient.get("/api/pages").putHeader("Authorization", jwtTokenHeaderValue).as(BodyCodec.jsonObject())
+					.send(promise);
 			return promise.future();
 		});
 
@@ -65,14 +85,16 @@ public class ApiTest {
 			context.assertEquals(0, array.getJsonObject(0).getInteger("id"));
 			Promise<HttpResponse<JsonObject>> promise = Promise.promise();
 			JsonObject data = new JsonObject().put("id", 0).put("markdown", "Oh Yeah!");
-			webClient.put("/api/pages/0").as(BodyCodec.jsonObject()).sendJsonObject(data, promise);
+			webClient.put("/api/pages/0").putHeader("Authorization", jwtTokenHeaderValue).as(BodyCodec.jsonObject())
+					.sendJsonObject(data, promise);
 			return promise.future();
 		});
 
 		Future<HttpResponse<JsonObject>> deletePageFuture = updatePageFuture.compose(resp -> {
 			context.assertTrue(resp.body().getBoolean("success"));
 			Promise<HttpResponse<JsonObject>> promise = Promise.promise();
-			webClient.delete("/api/pages/0").as(BodyCodec.jsonObject()).send(promise);
+			webClient.delete("/api/pages/0").putHeader("Authorization", jwtTokenHeaderValue).as(BodyCodec.jsonObject())
+					.send(promise);
 			return promise.future();
 		});
 
@@ -87,10 +109,4 @@ public class ApiTest {
 
 		async.awaitSuccess(5000);
 	}
-
-	@After
-	public void finish(TestContext context) {
-		vertx.close(context.asyncAssertSuccess());
-	}
-
 }
